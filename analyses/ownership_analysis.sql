@@ -8,20 +8,80 @@ Questions to Answer:
 
 */
 
-select 
-    a.entity_type,
-    -- c.owner_urn,
-    json_extract_string(b.entity_details, '$.username') username,
-    json_extract_string(b.entity_details, '$.title') as title ,
-    count(distinct a.urn) as cnt
-from stg_datahub_entities a,
-     unnest(json_extract(owners, '$.owners')::json[]) c(owner_urn)
-LEFT OUTER JOIN 
-stg_datahub_entities b
-on json_extract_string(c.owner_urn, '$.owner')=b.urn
-group by 1,2,3--,4
-order by 2,1
-;
+/*
+Initial code refactoring comments
+1. Remove commented out code not being used for outputting query results. Cleaner code = better code.
+2. Breaking out the query into additiional CTEs for better debugging and compartmentalizing code in digestible chunks.
+3. Add upper cases to syntax where applicable
+*/
+
+-- Step 1: Extract owner URNs from datasets and dashboards
+with entity_owners AS (
+    SELECT
+        entities.urn AS entity_urn,
+        entities.entity_type,
+        json_extract_string(owner.value, '$.owner') AS owner_urn
+    FROM
+        -- Rename alias from a to entities for readability
+        stg_datahub_entities AS entities,
+        -- Use existing unnest function to take the flattened JSON array of owners and convert into separate rows
+        unnest(json_extract(owners, '$.owners')::json[]) AS owner(value)
+    WHERE
+        -- Limit query to datasets and dashboards only
+        entities.entity_type IN ('dataset', 'dashboard')
+        AND owners IS NOT NULL
+),
+
+-- Step 2: Get owner details
+owner_details AS (
+    SELECT
+        entities.urn as owner_urn,
+        -- Update alias from username to user_name for readability. Debating between updating user_name to owner_name instead, but went with user_name. A PR review would suggest alternatives.
+        json_extract_string(entities.entity_details, '$.username') AS user_name,
+        -- Update alias from title to owner_title for readability
+        json_extract_string(entities.entity_details, '$.title') AS owner_title
+    FROM
+        -- Rename alias from b to entities for readability
+        stg_datahub_entities entities
+    WHERE
+        -- Limit to user entities
+        entities.entity_type = 'user'
+),
+
+-- Step 3: Combine owner type and details and calculate ownership counts
+ownership_summary AS (
+    SELECT
+        entity_owners.entity_type,
+        owner_details.user_name,
+        owner_details.owner_title,
+        count(distinct entity_owners.entity_urn) AS entity_count
+    FROM
+        entity_owners
+    LEFT JOIN
+        owner_details
+    ON
+        entity_owners.owner_urn = owner_details.owner_urn
+    GROUP BY
+    -- Remove numbered column in group by and explicity listing column names instead.
+        entity_owners.entity_type, 
+        owner_details.user_name, 
+        owner_details.owner_title
+)
+
+-- Step 4: Who owns what, their title, and the count of owned entities
+SELECT
+-- Change order of columns to be more readable for end user
+    user_name,
+    owner_title,
+    entity_type,
+    entity_count
+FROM
+    ownership_summary
+ORDER BY
+-- Explicitly specify column name instead of the ordered number
+    entity_count DESC, 
+    user_name, 
+    entity_type;
 
 
 /*

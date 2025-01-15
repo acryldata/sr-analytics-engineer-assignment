@@ -41,7 +41,7 @@ models:
       - name: entity_created_by
         description: "Identifier of the User or process that created the Entity."
       - name: domains
-        description: "Domain assigned to the Dataset/Dashboard, used to represent organizational ownership of data assets, i.e. Finance, Marketing, Sales. Only one Domain can be assigned at any given time, but assignment can change over time. Domains cannot be assigned to Gossary Terms or Users."
+        description: "Domain assigned to the Dataset/Dashboard, used to represent organizational ownership of data assets, i.e. Finance, Marketing, Sales. Only one Domain can be assigned at any given time, but assignment can change over time. Domains cannot be assigned to Glossary Terms or Users."
       - name: domains_added_at
         description: "Timestamp when the Domain was associated with the Entity."
       - name: domains_added_by

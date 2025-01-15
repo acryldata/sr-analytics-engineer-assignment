@@ -11,53 +11,54 @@ Questions to Answer:
 /*
 Initial code refactoring comments
 1. Remove commented out code not being used for outputting query results. Cleaner code = better code.
-2. Breaking out the query into CTEs for better debugging and understanding of code
+2. Breaking out the query into CTEs for better debugging and compartmentalizing code in digestible chunks
+3. Add upper cases to syntax where applicable
 */
 
 -- Step 1: Parse the JSON domain values into individual rows. 
-with parsed_domains as 
+WITH parsed_domains AS 
 (
-  select
-    entity_with_domains.urn as entity_urn,
-    json_extract_string(domain_flat.domain_urn, '$') as domain_urn
-  from
-    stg_datahub_entities as entity_with_domains,
+  SELECT
+    entity_with_domains.urn AS entity_urn,
+    json_extract_string(domain_flat.domain_urn, '$') AS domain_urn
+  FROM
+    stg_datahub_entities AS entity_with_domains,
     -- Use existing unnest function to take the flattened JSON array of domains and convert into separate rows
-    unnest(json_extract_string(entity_with_domains.domains, '$.domains')::string[]) as domain_flat(domain_urn)
-  where
-    entity_with_domains.domains is not null
+    unnest(json_extract_string(entity_with_domains.domains, '$.domains')::string[]) AS domain_flat(domain_urn)
+  WHERE
+    entity_with_domains.domains IS NOT NULL
 ),
 
 -- Step 2: Add domain metadata for corresponding domain_urn
-domain_details as 
+domain_details AS 
 (
-  select
-    urn as domain_urn,
-    json_extract_string(entity_details, '$.name') as domain_name,
-    json_extract_string(entity_details, '$.description') as domain_description
-  from
+  SELECT
+    urn AS domain_urn,
+    json_extract_string(entity_details, '$.name') AS domain_name,
+    json_extract_string(entity_details, '$.description') AS domain_description
+  FROM
     stg_datahub_entities
 )
 
 -- Step 3: Aggregate results
-select
+SELECT
   d.domain_name,
   d.domain_description,
 -- Update column name from entity_count to domain_entity_count for clearer understanding of columns
-  count(distinct pd.entity_urn) as domain_entity_count
-from
-  parsed_domains as pd
-left join
-  domain_details as d
+  count(distinct pd.entity_urn) AS domain_entity_count
+FROM
+  parsed_domains AS pd
+LEFT JOIN
+  domain_details AS d
   on pd.domain_urn = d.domain_urn
-group by
+GROUP BY
 -- Remove numbered columns in group by and explicity listing column names instead. It allows for ease of maintenance and allows any other reviewer to understand the query easily
   d.domain_name, 
   d.domain_description
-order by
+ORDER BY
 -- Ordering by entity_count helps answer how many datasets and/or dashboards is that Domain applied to
-  domain_entity_count desc
-limit 1;
+  domain_entity_count DESC
+LIMIT 1;
 
 /*
 New Query Output:
