@@ -25,7 +25,7 @@ with entity_with_domains as ( --separated into CTEs for readability
 	  entity_with_domains.domain_urn
 	  , json_extract_string(domain_details.entity_details, '$.name') as domain_name
 	  , json_extract_string(domain_details.entity_details, '$.description') as domain_description
-	  , count(distinct entity_with_domains.entity_urn) as dashboard_dataset_count
+	  , count(entity_with_domains.entity_urn) as dashboard_dataset_count --no change with distinct count, but could be a performance hit at scale
 	from entity_with_domains
 	left join
 	  stg_datahub_entities as domain_details
