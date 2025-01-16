@@ -58,3 +58,71 @@ models:
         description: "Timestamp when Owners were associated with the Entity."
       - name: owners_added_by
         description: "Identifier of the User or process that added Owners."
+  - name: cleaned_entity_domains
+    description: >
+      Normalized domain information for datasets and dashboards. Extracts domain assignments.
+    columns:
+      - name: entity_urn
+        description: Unique identifier for datasets or dashboards.
+        tests:
+          - unique
+          - not_null
+      - name: domain_name
+        description: Name of domain assigned to the entity.
+        tests:
+          - not_null
+      - name: domain_description
+        description: Description of domain assigned to the entity.
+  - name: cleaned_entity_owners
+    description: >
+      Normalized ownership data for datasets and dashboards. Extracts owner relationships.
+    columns:
+      - name: entity_urn
+        description: Unique identifier for datasets or dashboards.
+        tests:
+          - unique
+          - not_null
+      - name: entity_type
+        description: Type of the entity (e.g., dataset, dashboard).
+      - name: owner_urn
+        tests:
+          - not_null
+        description: Unique identifier for the owner.
+  - name: int_ownership_details
+    description: >
+      Combines ownership, user, and domain data, providing a comprehensive dataset for exploratory analysis.
+    columns:
+      - name: entity_urn
+        description: Unique identifier for datasets or dashboards.
+        tests:
+          - not_null
+      - name: entity_type
+        description: Type of the entity (e.g., dataset, dashboard).
+      - name: owner_username
+        description: Username of the owner.
+        tests:
+          - not_null        
+      - name: owner_title
+        description: Job title of the owner.
+      - name: associated_domain
+        description: Domain name associated with the entity.
+        tests:
+          - not_null
+  - name: ownership_summary
+    description: >
+      Summary of entity type ownership counts by user name and domain. Aggregates data for reporting purposes.
+    columns:
+      - name: owner_username
+        description: Username of the owner.
+        tests:
+          - not_null
+      - name: owner_title
+        description: Job title of the owner.
+      - name: associated_domain
+        description: Domain name associated with the owned entities.
+      - name: entity_type
+        description: Type of the entity (e.g., dataset, dashboard).
+        tests:
+          - not_null
+      - name: entity_count
+        description: Count of entities owned by the user.
